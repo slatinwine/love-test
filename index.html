@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>心动同频 · 恋爱默契测试</title>
+<style>
+  :root {
+    --bg: #FAF7F5;
+    --card: #FFFFFF;
+    --ink: #2B2B33;
+    --sub: #8A8A94;
+    --a: #FF5A7E;   /* 玩家1 · 粉 */
+    --b: #4E8CFF;   /* 玩家2 · 蓝 */
+    --line: #EFE9E6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  #stage { height: 100dvh; display: flex; flex-direction: column; }
+
+  .screen { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .screen.on { display: flex; }
+
+  /* ---------- 开始页 ---------- */
+  .logo { font-size: 44px; margin-bottom: 12px; }
+  h1 { font-size: 30px; letter-spacing: 2px; margin-bottom: 8px; }
+  .tagline { color: var(--sub); font-size: 15px; margin-bottom: 36px; }
+  .rules {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 20px 22px; width: 100%; max-width: 340px; margin-bottom: 32px;
+  }
+  .rules li { list-style: none; display: flex; gap: 10px; font-size: 14px; line-height: 1.7; color: #55555e; }
+  .rules li b { color: var(--ink); }
+  .rules .n { flex: 0 0 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; margin-top: 3px; }
+  .rules .n:nth-child(odd) { background: var(--a); }
+  .rules .n:nth-child(even) { background: var(--b); }
+  .btn {
+    border: none; border-radius: 999px; padding: 15px 52px; font-size: 18px; font-weight: 600;
+    color: #fff; background: var(--ink); letter-spacing: 3px; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(43,43,51,.25); transition: transform .1s;
+  }
+  .btn:active { transform: scale(.95); }
+
+  /* ---------- 倒计时 ---------- */
+  #countNum { font-size: 110px; font-weight: 800; }
+  #countLabel { color: var(--sub); margin-top: 10px; font-size: 15px; letter-spacing: 1px; }
+  .pop { animation: pop .9s ease-out; }
+  @keyframes pop {
+    0% { transform: scale(1.8); opacity: 0; }
+    30% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(.9); opacity: .6; }
+  }
+
+  /* ---------- 游戏页 ---------- */
+  #screen-play { justify-content: flex-start; padding: 0; position: relative; }
+  .play-head { padding: 18px 20px 10px; text-align: center; }
+  .play-head .t { font-size: 16px; font-weight: 600; }
+  .play-head .s { font-size: 13px; color: var(--sub); margin-top: 4px; }
+  #arena { position: relative; flex: 1; width: 100%; }
+
+  .target {
+    position: absolute; width: 104px; height: 104px; margin: -52px 0 0 -52px;
+    border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; transition: transform .15s, background .15s, border .15s;
+  }
+  .target .icon { font-size: 30px; }
+  .target .name { font-size: 12px; font-weight: 600; }
+  .target.pulse { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.08);} }
+  .target.t0 { border: 3px dashed var(--a); color: var(--a); background: rgba(255,90,126,.06); }
+  .target.t1 { border: 3px dashed var(--b); color: var(--b); background: rgba(78,140,255,.06); }
+  .target.pressed.t0 { border-style: solid; background: rgba(255,90,126,.18); transform: scale(.92); animation: none; }
+  .target.pressed.t1 { border-style: solid; background: rgba(78,140,255,.18); transform: scale(.92); animation: none; }
+  .target.done { opacity: .45; }
+  .target .state { font-size: 11px; color: var(--sub); min-height: 15px; }
+
+  #playHint { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; color: var(--sub); font-size: 13px; }
+
+  #timeup {
+    position: absolute; inset: 0; background: rgba(250,247,245,.94); z-index: 5;
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center;
+  }
+  #timeup.on { display: flex; }
+  #timeup .big { font-size: 54px; }
+  #timeup .msg { font-size: 17px; font-weight: 600; }
+  #timeup .btn { padding: 12px 40px; font-size: 16px; }
+
+  /* ---------- 结果页 ---------- */
+  #screen-result { justify-content: flex-start; overflow-y: auto; touch-action: pan-y; }
+  .res-top { text-align: center; padding: 34px 20px 10px; }
+  .res-emoji { font-size: 58px; }
+  #matchNum { font-size: 84px; font-weight: 800; line-height: 1.1; }
+  #matchNum small { font-size: 34px; font-weight: 700; }
+  #verdict { font-size: 19px; font-weight: 700; margin-top: 2px; }
+  .res-sub { color: var(--sub); font-size: 13px; margin-top: 8px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    width: 100%; max-width: 360px; padding: 18px 20px; margin: 14px auto 0;
+  }
+  .card h3 { font-size: 14px; color: var(--sub); font-weight: 600; margin-bottom: 14px; letter-spacing: 1px; }
+  .bar-row { margin-bottom: 14px; }
+  .bar-row:last-child { margin-bottom: 2px; }
+  .bar-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .bar-head .pct { font-weight: 700; }
+  .bar { height: 8px; background: #F1ECE9; border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 99px; width: 0; transition: width .8s cubic-bezier(.2,.8,.3,1); }
+  .bar.sync i { background: linear-gradient(90deg, var(--a), var(--b)); }
+
+  .duo { display: flex; gap: 12px; }
+  .duo .col { flex: 1; border-radius: 12px; padding: 12px 14px; }
+  .duo .col.c0 { background: rgba(255,90,126,.07); }
+  .duo .col.c1 { background: rgba(78,140,255,.07); }
+  .duo .who { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .duo .c0 .who { color: var(--a); }
+  .duo .c1 .who { color: var(--b); }
+  .duo .kv { display: flex; justify-content: space-between; font-size: 12.5px; color: #55555e; padding: 3px 0; }
+  .duo .kv b { color: var(--ink); font-weight: 600; }
+
+  .kvline { display: flex; justify-content: space-between; font-size: 13.5px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .kvline:last-child { border-bottom: none; }
+  .kvline b { font-weight: 700; }
+
+  .btn-again { margin: 22px auto 34px; background: var(--ink); }
+  .foot-note { text-align: center; color: #B9B4B0; font-size: 11px; padding-bottom: 18px; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 开始 -->
+  <div class="screen on" id="screen-start">
+    <div class="logo">💞</div>
+    <h1>心动同频</h1>
+    <div class="tagline">两个人，同一时刻，同一落点</div>
+    <ul class="rules">
+      <li><span class="n">1</span><span>两人各站手机一侧，<b>倒计时 3 秒</b>后出现两个彩色圆圈</span></li>
+      <li><span class="n">2</span><span>听到 GO 后，<b>同时按住</b>自己颜色的圆圈，坚持 1 秒左右再松手</span></li>
+      <li><span class="n">3</span><span>根据<b>同步率、时长、落点</b>计算你们的匹配度</span></li>
+    </ul>
+    <button class="btn" id="btnStart">开始测试</button>
+  </div>
+
+  <!-- 倒计时 -->
+  <div class="screen" id="screen-count">
+    <div id="countNum">3</div>
+    <div id="countLabel">准备…各自手指悬停在屏幕两侧</div>
+  </div>
+
+  <!-- 游戏 -->
+  <div class="screen" id="screen-play">
+    <div class="play-head">
+      <div class="t">同时按住自己的圆圈！</div>
+      <div class="s">按住约 1 秒后一起松手</div>
+    </div>
+    <div id="arena"></div>
+    <div id="playHint">💗 左边粉色是 TA1　·　💙 右边蓝色是 TA2</div>
+    <div id="timeup">
+      <div class="big">⏰</div>
+      <div class="msg">超时啦！要同时按下才可以哦</div>
+      <button class="btn" id="btnRetry">再来一次</button>
+    </div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="screen" id="screen-result">
+    <div class="res-top">
+      <div class="res-emoji" id="resEmoji">💞</div>
+      <div id="matchNum">0<small>%</small></div>
+      <div id="verdict">…</div>
+      <div class="res-sub" id="resSub"></div>
+    </div>
+
+    <div class="card">
+      <h3>默契构成</h3>
+      <div class="bar-row"><div class="bar-head"><span>心动同步 · 同时按下（40%）</span><span class="pct" id="pSync">0</span></div><div class="bar sync"><i id="bSync"></i></div></div>
+      <div class="bar-row"><div class="bar-head"><span>节奏默契 · 按压时长（30%）</span><span class="pct" id="pRhythm">0</span></div><div class="bar"><i id="bRhythm" style="background:var(--a)"></i></div></div>
+      <div class="bar-row"><div class="bar-head"><span>位置精准 · 按压落点（30%）</span><span class="pct" id="pPos">0</span></div><div class="bar"><i id="bPos" style="background:var(--b)"></i></div></div>
+    </div>
+
+    <div class="card">
+      <h3>按压数据</h3>
+      <div class="duo">
+        <div class="col c0">
+          <div class="who">💗 TA1</div>
+          <div class="kv"><span>反应时间</span><b id="d0t">-</b></div>
+          <div class="kv"><span>按压时长</span><b id="d0d">-</b></div>
+          <div class="kv"><span>落点偏差</span><b id="d0p">-</b></div>
+        </div>
+        <div class="col c1">
+          <div class="who">💙 TA2</div>
+          <div class="kv"><span>反应时间</span><b id="d1t">-</b></div>
+          <div class="kv"><span>按压时长</span><b id="d1d">-</b></div>
+          <div class="kv"><span>落点偏差</span><b id="d1p">-</b></div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="kvline"><span>两人按下时间差</span><b id="sDiff">-</b></div>
+        <div class="kvline"><span>时长差</span><b id="sDur">-</b></div>
+      </div>
+    </div>
+
+    <button class="btn btn-again" id="btnAgain">再来一局</button>
+    <div class="foot-note">结果仅供娱乐，真正的默契在日常里 💫</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var screens = {
+    start: document.getElementById('screen-start'),
+    count: document.getElementById('screen-count'),
+    play: document.getElementById('screen-play'),
+    result: document.getElementById('screen-result')
+  };
+  var arena = document.getElementById('arena');
+  var timeup = document.getElementById('timeup');
+
+  var state = 'idle';          // idle | count | playing | done
+  var targets = [];            // [{x,y}]
+  var players = [];            // [{start,end,duration,x,y,pressed,done,touchId,el,stateEl}]
+  var activeTouches = {};      // touchId -> playerIndex
+  var playTimer = null;
+
+  function show(name) {
+    Object.keys(screens).forEach(function (k) {
+      screens[k].classList.toggle('on', k === name);
+    });
+  }
+
+  function freshPlayer() {
+    return { start: null, end: null, duration: null, x: null, y: null,
+             pressed: false, done: false, touchId: null, el: null, stateEl: null };
+  }
+
+  /* ---------------- 开始 / 倒计时 ---------------- */
+
+  function startGame() {
+    show('count');
+    state = 'count';
+    players = [freshPlayer(), freshPlayer()];
+    var cd = document.getElementById('countNum');
+    var n = 3;
+    cd.textContent = n;
+    cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop');
+    var iv = setInterval(function () {
+      n--;
+      if (n > 0) {
+        cd.textContent = n;
+        cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop');
+      } else {
+        clearInterval(iv);
+        cd.textContent = 'GO!';
+        cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop');
+        setTimeout(startPlay, 650);
+      }
+    }, 1000);
+  }
+
+  function startPlay() {
+    show('play');
+    timeup.classList.remove('on');
+    arena.innerHTML = '';
+    activeTouches = {};
+    players = [freshPlayer(), freshPlayer()];
+    targets = [randomTarget(0), randomTarget(1)];
+    targets.forEach(function (t, i) {
+      var el = document.createElement('div');
+      el.className = 'target t' + i + ' pulse';
+      el.style.left = t.x + 'px';
+      el.style.top = t.y + 'px';
+      el.innerHTML = '<div class="icon">' + (i === 0 ? '💗' : '💙') + '</div>' +
+                     '<div class="name">TA' + (i + 1) + '</div>' +
+                     '<div class="state"></div>';
+      arena.appendChild(el);
+      players[i].el = el;
+      players[i].stateEl = el.querySelector('.state');
+    });
+    state = 'playing';
+    playTimer = setTimeout(function () {
+      if (state === 'playing') {
+        state = 'idle';
+        timeup.classList.add('on');
+      }
+    }, 10000);
+  }
+
+  function randomTarget(i) {
+    var r = arena.getBoundingClientRect();
+    var minX = r.width * (i === 0 ? 0.16 : 0.60);
+    var maxX = r.width * (i === 0 ? 0.40 : 0.84);
+    var minY = r.height * 0.24;
+    var maxY = r.height * 0.68;
+    return {
+      x: minX + Math.random() * (maxX - minX),
+      y: minY + Math.random() * (maxY - minY)
+    };
+  }
+
+  /* ---------------- 按压采集 ---------------- */
+
+  function nearestTarget(x, y) {
+    var best = null, bestD = 1e9;
+    for (var i = 0; i < targets.length; i++) {
+      if (players[i].pressed) continue;
+      var dx = x - targets[i].x, dy = y - targets[i].y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return (best !== null && bestD <= 130) ? best : null;
+  }
+
+  function pressDown(idx, x, y, touchId) {
+    var p = players[idx];
+    p.pressed = true;
+    p.start = performance.now();
+    p.x = x; p.y = y;
+    p.touchId = touchId;
+    p.el.classList.add('pressed');
+    p.el.classList.remove('pulse');
+    p.stateEl.textContent = '已按住 ✔';
+    if (navigator.vibrate) navigator.vibrate(30);
+  }
+
+  function pressUp(idx) {
+    var p = players[idx];
+    p.end = performance.now();
+    p.duration = p.end - p.start;
+    p.done = true;
+    p.el.classList.add('done');
+    p.stateEl.textContent = '松手 · ' + Math.round(p.duration) + 'ms';
+    checkBoth();
+  }
+
+  function checkBoth() {
+    if (players[0].done && players[1].done) {
+      state = 'done';
+      clearTimeout(playTimer);
+      setTimeout(showResult, 550);
+    }
+  }
+
+  function handleStart(x, y, touchId) {
+    if (state !== 'playing') return;
+    var idx = nearestTarget(x, y);
+    if (idx !== null && !players[idx].pressed) {
+      pressDown(idx, x, y, touchId);
+    }
+  }
+
+  function handleEnd(touchId) {
+    if (state !== 'playing') return;
+    var idx = activeTouches[touchId];
+    if (idx !== undefined && !players[idx].done) {
+      pressUp(idx);
+    }
+  }
+
+  // 触摸（手机主要入口，支持多指同时按）
+  document.addEventListener('touchstart', function (e) {
+    if (state !== 'playing') return;
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      var t = e.changedTouches[i];
+      var idx = nearestTarget(t.clientX, t.clientY);
+      if (idx !== null && !players[idx].pressed) {
+        activeTouches[t.identifier] = idx;
+        pressDown(idx, t.clientX, t.clientY, t.identifier);
+      }
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', function (e) {
+    if (state !== 'playing') return;
+    e.preventDefault();
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      handleEnd(e.changedTouches[i].identifier);
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchcancel', function (e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      handleEnd(e.changedTouches[i].identifier);
+    }
+  });
+
+  // 鼠标兜底（电脑上单人体验：先点一个再点另一个）
+  document.addEventListener('mousedown', function (e) {
+    if (state !== 'playing') return;
+    handleStart(e.clientX, e.clientY, 'mouse');
+  });
+  document.addEventListener('mouseup', function () {
+    if (state !== 'playing') return;
+    handleEnd('mouse');
+  });
+
+  /* ---------------- 结果计算 ---------------- */
+
+  function clampScore(v, max) {
+    if (v >= max) return 0;
+    return Math.max(0, Math.round(100 * (1 - v / max)));
+  }
+
+  function dist(p, t) {
+    var dx = p.x - t.x, dy = p.y - t.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function fmtMs(ms) { return (ms / 1000).toFixed(2) + ' 秒'; }
+
+  function showResult() {
+    var dt = Math.abs(players[0].start - players[1].start);
+    var sync = clampScore(dt, 1200);                       // 按下时间差
+    var dd = Math.abs(players[0].duration - players[1].duration);
+    var rhythm = clampScore(dd, 2200);                     // 时长差
+    var d0 = dist(players[0], targets[0]);
+    var d1 = dist(players[1], targets[1]);
+    var pos = clampScore((d0 + d1), 320);                  // 落点偏差（合计）
+    var total = Math.round(sync * 0.4 + rhythm * 0.3 + pos * 0.3);
+
+    // 顶部分数 + 评语
+    var tiers;
+    if (total >= 90)      tiers = ['💞', '天作之合', '你们简直是复制粘贴出来的默契！'];
+    else if (total >= 75) tiers = ['💕', '心有灵犀', '一个眼神就知道对方在想什么～'];
+    else if (total >= 60) tiers = ['💗', '默契渐入佳境', '再练几次就能同频了！'];
+    else if (total >= 40) tiers = ['💫', '还在磨合期', '节奏没对上，但心是对的'];
+    else                  tiers = ['🌱', '缘分需要浇灌', '没关系，慢慢来比较快'];
+
+    document.getElementById('resEmoji').textContent = tiers[0];
+    document.getElementById('verdict').textContent = tiers[1];
+    document.getElementById('resSub').textContent = tiers[2];
+
+    show('result');
+
+    // 分数动画
+    var numEl = document.getElementById('matchNum');
+    var t0 = performance.now(), dur = 900;
+    (function tick(now) {
+      var k = Math.min(1, (now - t0) / dur);
+      k = 1 - Math.pow(1 - k, 3);
+      numEl.innerHTML = Math.round(total * k) + '<small>%</small>';
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+
+    // 三条分项
+    setBar('bSync', 'pSync', sync);
+    setBar('bRhythm', 'pRhythm', rhythm);
+    setBar('bPos', 'pPos', pos);
+
+    document.getElementById('d0t').textContent = fmtMs(players[0].start - playStartRef());
+    document.getElementById('d1t').textContent = fmtMs(players[1].start - playStartRef());
+    document.getElementById('d0d').textContent = fmtMs(players[0].duration);
+    document.getElementById('d1d').textContent = fmtMs(players[1].duration);
+    document.getElementById('d0p').textContent = Math.round(d0) + ' px';
+    document.getElementById('d1p').textContent = Math.round(d1) + ' px';
+    document.getElementById('sDiff').textContent = Math.round(dt) + ' ms';
+    document.getElementById('sDur').textContent = Math.round(dd) + ' ms';
+  }
+
+  var goTime = 0;
+  function playStartRef() { return goTime; }
+
+  // 记录 GO 时刻（在 startPlay 里赋值）
+  var _origStartPlay = startPlay;
+  startPlay = function () {
+    _origStartPlay();
+    goTime = performance.now();
+  };
+
+  function setBar(barId, pctId, val) {
+    var bar = document.getElementById(barId);
+    bar.style.width = '0%';
+    setTimeout(function () { bar.style.width = val + '%'; }, 60);
+    // 数字也做滚动
+    var el = document.getElementById(pctId);
+    var t0 = performance.now(), dur = 900;
+    (function tick(now) {
+      var k = Math.min(1, (now - t0) / dur);
+      k = 1 - Math.pow(1 - k, 3);
+      el.textContent = Math.round(val * k);
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  /* ---------------- 事件绑定 ---------------- */
+
+  document.getElementById('btnStart').addEventListener('click', startGame);
+  document.getElementById('btnRetry').addEventListener('click', function () {
+    timeup.classList.remove('on');
+    startGame();
+  });
+  document.getElementById('btnAgain').addEventListener('click', startGame);
+})();
+</script>
+</body>
+</html>
