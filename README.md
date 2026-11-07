@@ -18,3 +18,7 @@
 
 - 纯 HTML / CSS / JavaScript，零依赖、零构建、单文件
 - Touch Events 多点触控（兼容鼠标操作）、requestAnimationFrame 分数动画
+
+## 关注公众号
+
+![公众号二维码](qrcode.jpg)
